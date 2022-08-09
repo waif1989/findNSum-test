@@ -7,6 +7,8 @@ const SELL_PLAN = 300 // 套餐价格
 const TARGET_PROFIT = 0.26 // 利润率
 const PRODUNTS_NUMS = 5 // 套餐需要多少种商品
 const BIAS = 10 // 利润偏差值
+const MAX_LIST_LIMIT = 1000 // 循环最大条数，多出会导致内存溢出
+const XLSX_LIST = 100000 // 方案输出
 let targetCost = SELL_PLAN - (SELL_PLAN * TARGET_PROFIT) // 达到套餐价格指定利润率的目标成本价格
 
 const wb = new xl.Workbook();
@@ -15,6 +17,7 @@ ws.cell(1, 1).string('商品编码')
 ws.cell(1, 2).string('商品名称')
 ws.cell(1, 3).string('商品成本')
 ws.cell(1, 4).string('市场价')
+ws.cell(1, 5).string('产地')
 
 // const writer = fs.createWriteStream(path.join(__dirname, './allProducts.js'));
 // writer.write(JSON.stringify(allProducts));
@@ -114,13 +117,14 @@ const NSum = function (nums, target, TargetN, cb) {
 };
 
 const genXlsx = (ws, arr) => {
-  const len = arr.length > 100 ? 100 : arr.length
+  const len = arr.length > XLSX_LIST ? XLSX_LIST : arr.length
   for (let i = 0; i < len; i++) {
     for (let j = 0; j < arr[i].length; j++) {
       ws.cell((i * (PRODUNTS_NUMS + 1) + 1) + (j + 1), 1).string(String(arr[i][j].id))
       ws.cell((i * (PRODUNTS_NUMS + 1) + 1) + (j + 1), 2).string(String(arr[i][j].name))
       ws.cell((i * (PRODUNTS_NUMS + 1) + 1) + (j + 1), 3).number(Number(arr[i][j].cost))
-      ws.cell((i * (PRODUNTS_NUMS + 1) + 1) + (j + 1), 4).number(Number(arr[i][j].sell))
+      ws.cell((i * (PRODUNTS_NUMS + 1) + 1) + (j + 1), 4).string(String(arr[i][j].sell))
+      ws.cell((i * (PRODUNTS_NUMS + 1) + 1) + (j + 1), 5).string(String(arr[i][j].origin || ''))
     }
   }
 
@@ -134,14 +138,16 @@ const genXlsx = (ws, arr) => {
 }
 
 const run = (removeDuplicates = true) => {
-  readXlsxFile(path.join(__dirname, './test2.xlsx'), { sheet: '标准化方案汇总' }).then((rows) => {
+  readXlsxFile(path.join(__dirname, './test3.xlsx'), { sheet: 'Sheet1' }).then((rows) => {
+  // readXlsxFile(path.join(__dirname, './test2.xlsx'), { sheet: '标准化方案汇总' }).then((rows) => {
     const productIds = []
     const packagesIds = []
     const packages = []
     let allProducts = [] // 所有不重复的商品
     let avgPackagesCost = 0
     let packagesCost = 0
-    for (let i = 1; i < rows.length; i++) {
+    const rowLen = rows.length > MAX_LIST_LIMIT ? MAX_LIST_LIMIT : rows.length
+    for (let i = 1; i < rowLen; i++) {
       if (removeDuplicates) {
         if (/纸箱/gi.test(rows[i][1]) || /物料/gi.test(rows[i][0]) || /包材预留/gi.test(rows[i][1]) || /环保袋/gi.test(rows[i][1])) {
           if (!packagesIds.includes(rows[i][1]) && !packagesIds.includes(rows[i][0])) {
@@ -158,17 +164,21 @@ const run = (removeDuplicates = true) => {
           allProducts.push({
             id: rows[i][0],
             name: rows[i][1],
-            cost: rows[i][2],
+            cost: Math.round(rows[i][2] || 0),
             sell: rows[i][3],
           })
         }
       } else {
-        allProducts.push({
-          id: rows[i][0],
-          name: rows[i][1],
-          cost: rows[i][2],
-          sell: rows[i][3],
-        })
+        let cost = Math.round(rows[i][2] || 0)
+        if (cost <= SELL_PLAN && cost >= 25) {
+          allProducts.push({
+            id: rows[i][0],
+            name: rows[i][1],
+            cost: Math.round(rows[i][2] || 0),
+            sell: rows[i][3],
+            origin: rows[i][5],
+          })
+        }
       }
     }
 
@@ -183,4 +193,4 @@ const run = (removeDuplicates = true) => {
   })
 }
 
-run()
+run(false)
