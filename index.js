@@ -138,7 +138,7 @@ const genXlsx = (ws, arr) => {
 }
 
 const run = (removeDuplicates = true) => {
-  readXlsxFile(path.join(__dirname, './test3.xlsx'), { sheet: 'Sheet1' }).then((rows) => {
+  readXlsxFile(path.join(__dirname, './bak/test3.xlsx'), { sheet: 'Sheet1' }).then((rows) => {
   // readXlsxFile(path.join(__dirname, './test2.xlsx'), { sheet: '标准化方案汇总' }).then((rows) => {
     const productIds = []
     const packagesIds = []

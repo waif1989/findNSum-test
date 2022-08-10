@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start:excel": "node index.js",
+    "start:format": "node format.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
